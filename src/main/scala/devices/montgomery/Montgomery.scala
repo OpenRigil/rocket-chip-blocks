@@ -211,7 +211,7 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   val a = Module(new Queue(UInt(params.width.W), queueSize))
   val b = Module(new Queue(UInt(params.width.W), queueSize))
   val inputWidth = Reg(UInt(params.inputWidthCounterBit.W))
-  val out = Module(new Queue(UInt(params.width.W), block))
+  val out = Module(new Queue(UInt(params.width.W), queueSize))
   // 0 for idle, 1 for reset, 2 for ready
   // reset not implemented yet
   val control = RegInit(0.U(2.W))
@@ -273,7 +273,7 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
 
   val outputCounterEnable = RegInit(1.U(1.W)) // make sure the counter only run once
   val outputCounter = Counter(0 to block-1, (outputCounterEnable === 1.U) && (outStatus === 1.U) && (out.io.enq.fire), (control === 0.U))._1
-  outputCounterEnable := Mux((control === 2.U), Mux(outputCounter === (realInputBlock.asUInt-1.U), 0.U, outputCounterEnable), 1.U)
+  outputCounterEnable := Mux((control === 2.U), Mux(outputCounter >= (realInputBlock.asUInt-1.U) && (out.io.enq.fire), 0.U, outputCounterEnable), 1.U)
 
   val out32 = Reg(Vec(block, UInt(32.W)))
   for(i <- 0 to block-1) {

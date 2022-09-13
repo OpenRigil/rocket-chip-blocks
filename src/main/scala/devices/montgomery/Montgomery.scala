@@ -205,10 +205,11 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   // use q for p here since p is used by Parameters
   // to support 4096-bit,  a and b and q should read 32bit per cycle (128 cycles)
   // to support 256-bit,  a and b and q should read 32bit per cycle (8 cycles)
-  val q = Module(new Queue(UInt(params.width.W), block))
+  val queueSize = 1
+  val q = Module(new Queue(UInt(params.width.W), queueSize))
   val pPrime = Reg(Bool())
-  val a = Module(new Queue(UInt(params.width.W), block))
-  val b = Module(new Queue(UInt(params.width.W), block))
+  val a = Module(new Queue(UInt(params.width.W), queueSize))
+  val b = Module(new Queue(UInt(params.width.W), queueSize))
   val inputWidth = Reg(UInt(params.inputWidthCounterBit.W))
   val out = Module(new Queue(UInt(params.width.W), block))
   // 0 for idle, 1 for reset, 2 for ready

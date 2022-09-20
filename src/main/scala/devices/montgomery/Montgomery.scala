@@ -253,8 +253,8 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
                 q.io.deq.bits,
                 Mux(i.asUInt < inputCounterQ.asUInt, row, 0.U)
       )
-  }
-  aToImpl(inputCounterA) := Mux((control === 2.U) && (a.io.deq.valid), a.io.deq.bits, aToImpl(inputCounterA))
+  } // make sure there is only i-bit valid data, the other bits are all 0
+  aToImpl(inputCounterA) := Mux((control === 2.U) && (a.io.deq.valid), a.io.deq.bits, aToImpl(inputCounterA)) // aToImpl doesn't require to set invalid bits to 0 because the mmm algorithm only use some specific bits of aToImpl
   bToImpl.zipWithIndex.foreach {
     case (row, i) =>
       row := Mux((control === 2.U)
@@ -263,7 +263,7 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
                 b.io.deq.bits,
                 Mux(i.asUInt < inputCounterB.asUInt, row, 0.U)
       )
-  }
+  } // the same with qToImpl
 
   // Manage Output
   val outValid = Reg(UInt(1.W))

@@ -274,9 +274,10 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   outCounterEnable := out.io.enq.fire
   outValid := Mux((outCounter === realInputBlock.asUInt-1.U) || (control === 0.U),  Mux(out.io.enq.fire, 0.U, outValid), impl.outValid)
 
-  status := outValid & (control === 2.U)
   out.io.enq.bits := out32(outCounter)
   out.io.enq.valid := outValid
+
+  status := outValid & (control === 2.U)
 
   // regmap
   regmap(

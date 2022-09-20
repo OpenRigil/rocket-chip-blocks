@@ -31,10 +31,10 @@ trait HasMontgomeryIO extends BaseModule {
   val pPrime = IO(Input(Bool()))
   val a = IO(Input(UInt(pWidth.W)))
   val b = IO(Input(UInt(pWidth.W)))
-  val input_width = IO(Input(UInt(inputWidthCounterBit.W)))
+  val inputWidth = IO(Input(UInt(inputWidthCounterBit.W)))
   val valid = IO(Input(Bool())) // input valid
   val out = IO(Output(UInt(pWidth.W)))
-  val out_valid = IO(Output(Bool())) // output valid
+  val outValid = IO(Output(Bool())) // output valid
 }
 
 /** Specialize the generic USB to make it attachable to an TL interconnect. */

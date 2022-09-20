@@ -223,21 +223,21 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   val realInputBlock = RegInit(0.U((params.inputWidthCounterBit).W))
   realInputBlock := Mux(control === 2.U, (inputWidth + 32.U) >> 5.U, realInputBlock) // should add with 32 but not 31, because inputWidth = original lenght - 1
 
-  val q4096 = Reg(Vec(block, UInt(32.W)))
-  val a4096 = Reg(Vec(block, UInt(32.W)))
-  val b4096 = Reg(Vec(block, UInt(32.W)))
-  val valid4096 = RegInit(0.U(1.W))
-  impl.p := q4096.asUInt
+  val qToImpl = Reg(Vec(block, UInt(32.W)))
+  val aToImpl = Reg(Vec(block, UInt(32.W)))
+  val bToImpl = Reg(Vec(block, UInt(32.W)))
+  val validToImpl = RegInit(0.U(1.W))
+  impl.p := qToImpl.asUInt
   impl.pPrime := pPrime
-  impl.a := a4096.asUInt
-  impl.b := b4096.asUInt
+  impl.a := aToImpl.asUInt
+  impl.b := bToImpl.asUInt
   impl.inputWidth := inputWidth.asUInt
-  impl.valid := valid4096
+  impl.valid := validToImpl
   
   val inputCounterA = Counter(0 to block, (control === 2.U) && (a.io.deq.valid), (control === 0.U))._1
   val inputCounterB = Counter(0 to block, (control === 2.U) && (b.io.deq.valid), (control === 0.U))._1
   val inputCounterQ = Counter(0 to block, (control === 2.U) && (q.io.deq.valid), (control === 0.U))._1
-  valid4096 := Mux((inputCounterA >= realInputBlock.asUInt)
+  validToImpl := Mux((inputCounterA >= realInputBlock.asUInt)
                 && (inputCounterB >= realInputBlock.asUInt)
                 && (inputCounterQ >= realInputBlock.asUInt)
                 && (control === 2.U), 1.U, 0.U)
@@ -245,7 +245,7 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   a.io.deq.ready := control === 2.U
   b.io.deq.ready := control === 2.U
 
-  q4096.zipWithIndex.foreach {
+  qToImpl.zipWithIndex.foreach {
     case (row, i) =>
       row := Mux((control === 2.U)
               && (q.io.deq.valid)
@@ -254,8 +254,8 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
                 Mux(i.asUInt < inputCounterQ.asUInt, row, 0.U)
       )
   }
-  a4096(inputCounterA) := Mux((control === 2.U) && (a.io.deq.valid), a.io.deq.bits, a4096(inputCounterA))
-  b4096.zipWithIndex.foreach {
+  aToImpl(inputCounterA) := Mux((control === 2.U) && (a.io.deq.valid), a.io.deq.bits, aToImpl(inputCounterA))
+  bToImpl.zipWithIndex.foreach {
     case (row, i) =>
       row := Mux((control === 2.U)
               && (b.io.deq.valid)
@@ -266,24 +266,17 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
   }
 
   // Manage Output
-  val out4096 = RegInit(0.U(length.W))
-  val outStatus = RegInit(0.U(1.W))
-  out4096 := Mux(impl.outValid, impl.out, out4096)
-  outStatus := impl.outValid
+  val outValid = Reg(UInt(1.W))
+  val out32 = VecInit(impl.out.asBools().grouped(32).map(VecInit(_).asUInt()).toSeq)
 
-  val outputCounterEnable = RegInit(1.U(1.W)) // make sure the counter only run once
-  val outputCounter = Counter(0 to block-1, (outputCounterEnable === 1.U) && (outStatus === 1.U) && (out.io.enq.fire), (control === 0.U))._1
-  outputCounterEnable := Mux((control === 2.U), Mux(outputCounter >= (realInputBlock.asUInt-1.U) && (out.io.enq.fire), 0.U, outputCounterEnable), 1.U)
+  val outCounterEnable = Reg(UInt(1.W)) // make sure the counter only run once
+  val outCounter = Counter(0 to block-1, (outCounterEnable === 1.U) && (outValid === 1.U), (control === 0.U))._1
+  outCounterEnable := out.io.enq.fire
+  outValid := Mux((outCounter === realInputBlock.asUInt-1.U) || (control === 0.U),  Mux(out.io.enq.fire, 0.U, outValid), impl.outValid)
 
-  val out32 = Reg(Vec(block, UInt(32.W)))
-  for(i <- 0 to block-1) {
-    out32(i) := out4096((i+1)*32 - 1, i*32)
-  }
-
-  status := outStatus & (control === 2.U)
-  val outStatusNext = RegNext(outStatus) // wait for out32 to be ready
-  out.io.enq.bits := out32(outputCounter)
-  out.io.enq.valid := Mux((control === 2.U) && (outStatusNext === 1.U) && (outputCounterEnable === 1.U), 1.U, 0.U)
+  status := outValid & (control === 2.U)
+  out.io.enq.bits := out32(outCounter)
+  out.io.enq.valid := outValid
 
   // regmap
   regmap(

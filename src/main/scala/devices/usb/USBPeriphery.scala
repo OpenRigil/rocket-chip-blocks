@@ -43,7 +43,7 @@ trait CanHavePeripheryUSBModuleImp extends LazyModuleImp {
   val outer: CanHavePeripheryUSB
   val usb = outer.usb match {
     case Some(usb) => {
-      Some(usb.makeIO()(ValName(s"usb")))
+      Some(usb.makeIO()(ValName(s"usbport")))
     }
     case None => None
   }

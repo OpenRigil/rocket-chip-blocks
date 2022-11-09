@@ -229,7 +229,7 @@ case class UARTLocated(loc: HierarchicalLocation) extends Field[Seq[UARTAttachPa
 
 case class UARTAttachParams(
   device: UARTParams,
-  controlWhere: TLBusWrapperLocation = PBUS,
+  controlWhere: TLBusWrapperLocation = SBUS,
   blockerAddr: Option[BigInt] = None,
   controlXType: ClockCrossingType = NoCrossing,
   intXType: ClockCrossingType = NoCrossing) extends DeviceAttachParams

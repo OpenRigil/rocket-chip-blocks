@@ -28,7 +28,7 @@ class UARTTx(c: UARTParams) extends Module {
   val out = Reg(init = Bits(1, 1))
   io.out := out
 
-  val plusarg_tx = PlusArg("uart_tx", 1, "Enable/disable the TX to speed up simulation").orR
+  val plusarg_tx = true.B//PlusArg("uart_tx", 1, "Enable/disable the TX to speed up simulation").orR
 
   val busy = (counter =/= UInt(0))
   io.in.ready := io.en && !busy

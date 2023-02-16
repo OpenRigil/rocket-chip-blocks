@@ -53,7 +53,7 @@ class MontgomeryMMIOChiselModule(val pWidth: Int, val inputWidthCounterBit: Int,
   val iBreak = (index.asUInt >= inputWidth.asUInt)
   state := chisel3.util.experimental.decode
     .decoder(
-      state.asUInt() ## addDoneNext ## valid ## iBreak ## loopVarU ## aIndexI, {
+      state.asUInt ## addDoneNext ## valid ## iBreak ## loopVarU ## aIndexI, {
         val Y = "1"
         val N = "0"
         val DC = "?"
@@ -113,17 +113,17 @@ class MontgomeryMMIOChiselModule(val pWidth: Int, val inputWidthCounterBit: Int,
 
   index := Mux1H(
     Map(
-      state.asUInt()(0) -> 0.U,
-      state.asUInt()(4) -> (index + 1.U),
+      state.asUInt(0) -> 0.U,
+      state.asUInt(4) -> (index + 1.U),
       (state.asUInt & "b1111101110".U).orR -> index
     )
   )
 
-  bPlusP := Mux(addDone & state.asUInt()(0), debounceAdd, bPlusP)
+  bPlusP := Mux(addDone & state.asUInt(0), debounceAdd, bPlusP)
 
   loopVarU := Mux1H(
     Map(
-      state.asUInt()(0) -> (a(0).asUInt & b(0).asUInt & pPrime.asUInt),
+      state.asUInt(0) -> (a(0).asUInt & b(0).asUInt & pPrime.asUInt),
       (state.asUInt & "b0010001110".U).orR -> ((addStable(1) + (a(index + 1.U) & b(0))) & pPrime.asUInt),
       (state.asUInt & "b1101110000".U).orR -> loopVarU
     )
@@ -131,7 +131,7 @@ class MontgomeryMMIOChiselModule(val pWidth: Int, val inputWidthCounterBit: Int,
 
   aIndexI := Mux1H(
     Map(
-      state.asUInt()(0) -> a(0),
+      state.asUInt(0) -> a(0),
       (state.asUInt & "b0010001110".U).orR -> a(index + 1.U),
       (state.asUInt & "b1101110000".U).orR -> aIndexI
     )
@@ -139,34 +139,34 @@ class MontgomeryMMIOChiselModule(val pWidth: Int, val inputWidthCounterBit: Int,
 
   nextT := Mux1H(
     Map(
-      state.asUInt()(0) -> 0.U,
-      state.asUInt()(4) -> (addStable >> 1),
-      state.asUInt()(5) -> addStable,
+      state.asUInt(0) -> 0.U,
+      state.asUInt(4) -> (addStable >> 1),
+      state.asUInt(5) -> addStable,
       (state.asUInt & "b1111001110".U).orR -> nextT
     )
   )
   val TWithoutSubControl = Reg(UInt(1.W))
   val TWithoutSub = Reg(UInt((pWidth + 2).W))
-  TWithoutSubControl := Mux(state.asUInt()(5), 0.U, 1.U)
-  TWithoutSub := Mux(state.asUInt()(5) && (TWithoutSubControl === 1.U), nextT, TWithoutSub)
-  invP := Mux(state.asUInt()(8), ~p, invP)
-  negP := Mux(state.asUInt()(9), addStable, negP)
+  TWithoutSubControl := Mux(state.asUInt(5), 0.U, 1.U)
+  TWithoutSub := Mux(state.asUInt(5) && (TWithoutSubControl === 1.U), nextT, TWithoutSub)
+  invP := Mux(state.asUInt(8), ~p, invP)
+  negP := Mux(state.asUInt(9), addStable, negP)
 
   adder.a := Mux1H(
     Map(
-      state.asUInt()(0) -> p,
-      state.asUInt()(9) -> 1.U,
+      state.asUInt(0) -> p,
+      state.asUInt(9) -> 1.U,
       (state.asUInt & "b0111111110".U).orR -> nextT
     )
   )
   adder.b := Mux1H(
     Map(
       (state.asUInt & "b0100000011".U).orR -> b,
-      state.asUInt()(9) -> Cat(3.U, invP),
-      state.asUInt()(2) -> p,
-      state.asUInt()(3) -> bPlusP,
-      state.asUInt()(7) -> 0.U,
-      state.asUInt()(5) -> negP
+      state.asUInt(9) -> Cat(3.U, invP),
+      state.asUInt(2) -> p,
+      state.asUInt(3) -> bPlusP,
+      state.asUInt(7) -> 0.U,
+      state.asUInt(5) -> negP
     )
   )
   lazy val debounceAdd = Mux(addDone, adder.z, 0.U)
@@ -174,7 +174,7 @@ class MontgomeryMMIOChiselModule(val pWidth: Int, val inputWidthCounterBit: Int,
 
   // output
   out := Mux(nextT.head(1).asBool, TWithoutSub, nextT)
-  outValid := state.asUInt()(6)
+  outValid := state.asUInt(6)
 }
 
 class DummyAdd(width: Int, pipe: Int) extends Module {
@@ -267,7 +267,7 @@ abstract class Montgomery(val params: MontgomeryParams, busWidthBytes: Int)
 
   // Manage Output
   val outValid = Reg(UInt(1.W))
-  val out32 = VecInit(impl.out.asBools().grouped(32).map(VecInit(_).asUInt()).toSeq)
+  val out32 = VecInit(impl.out.asBools.grouped(32).map(VecInit(_).asUInt).toSeq)
 
   val outCounterEnable = Reg(UInt(1.W)) // make sure the counter only run once
   val outCounter = Counter(0 to block-1, (outCounterEnable === 1.U) && (outValid === 1.U), (control === 0.U))._1
